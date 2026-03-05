@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@media print {
+  * {
+    box-sizing: border-box;
+  }
+
+  @page {
+    size: letter;
+    margin: 0.5in;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: white !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .only-print {
+    display: block !important;
+  }
+
+  .print-area {
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    overflow: hidden;
+  }
+
+  table {
+    width: 100% !important;
+    table-layout: fixed;
+  }
+
+  tfoot {
+    display: table-row-group;
+    page-break-inside: avoid;
+  }
+
+  #invoice,
+  .print-area {
+    page-break-after: avoid;
+  }
+
+  thead tr,
+  .bg-brand {
+    background-color: #325C74 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  input {
+    border: none !important;
+    background: transparent !important;
+    outline: none !important;
+  }
+
+  input:focus {
+    background: transparent !important;
+  }
+}
+
+.font-brand {
+  color: #325C74;
+}
+
+.bg-brand {
+  background-color: #325C74;
+}
+
+table td,
+table th {
+  vertical-align: middle;
+}
+
+.only-print {
+  display: none;
+}
+
+/* Remove spinner arrows */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

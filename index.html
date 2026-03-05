@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Invoice Generator - Custom Kekinian</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body class="min-h-screen bg-gray-100 p-6">
+  <div class="max-w-4xl mx-auto">
+    <div class="mb-4 no-print">
+      <button id="btnPrint" class="bg-blue-600 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-blue-700 font-semibold shadow-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Save as PDF
+      </button>
+    </div>
+
+    <div id="invoice" class="bg-white p-8 shadow-lg print-area">
+      <div class="flex justify-between items-start mb-8">
+        <div class="flex items-center gap-4">
+          <img src="logo.png" alt="Logo Custom Kekinian" class="w-24 h-24 object-cover rounded-full" />
+        </div>
+        <div class="text-right">
+          <h1 class="text-2xl font-bold mb-2" style="color: #325C74;">CUSTOM KEKINIAN</h1>
+          <div class="text-xs text-gray-700 leading-relaxed">
+            <p class="font-bold">KAOS POLOS - SABLON - BORDIR</p>
+            <p>Komplek Permata Prima. Jl. B. Z, Jl. Brigjend Zein Hamid Gg. Rapi No.C 10</p>
+            <p>Titi Kuning, Kec. Medan Johor, Kota Medan,</p>
+            <p>Sumatera Utara 20211</p>
+            <p class="mt-2">Email: customkekinian@gmail.com</p>
+            <p>Telp / WA: 0811 6060 873</p>
+          </div>
+        </div>
+      </div>
+
+      <h2 class="text-3xl font-bold mb-6">INVOICE</h2>
+
+      <div class="border-2 border-gray-300 p-4 mb-6">
+        <div class="flex justify-between items-start">
+          <div class="flex flex-col">
+            <div class="text-sm text-gray-600">Kepada</div>
+            <input id="customerName" type="text" placeholder="Nama Customer" class="text-lg font-semibold outline-none border-none p-0" />
+          </div>
+          <div class="flex flex-col items-end" ">
+            <div class="text-sm text-gray-600">Tanggal</div>
+            <input id="currentDate" type="date" class="text-lg font-semibold outline-none border-none p-0 text-right" />
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-6">
+        <table class="w-full border-collapse">
+          <thead>
+            <tr class="text-white" style="background-color: #325C74;">
+              <th class="border border-gray-300 p-2 text-left w-1/4">PRODUK</th>
+              <th class="border border-gray-300 p-2 w-1/6">COLOR</th>
+              <th class="border border-gray-300 p-2 w-16">SIZE</th>
+              <th class="border border-gray-300 p-2 w-16">QTY</th>
+              <th class="border border-gray-300 p-2 w-1/5">HARGA</th>
+              <th class="border border-gray-300 p-2 w-1/5">JUMLAH</th>
+              <th class="border border-gray-300 p-2 no-print w-20"></th>
+            </tr>
+          </thead>
+          <tbody id="itemsBody"></tbody>
+          <tfoot>
+            <tr id="grandTotalRow">
+              <td colspan="5" class="border border-gray-300 p-2 text-left font-bold">TOTAL</td>
+              <td id="grandTotalAmount" class="border border-gray-300 p-2 text-right font-bold">Rp 0</td>
+              <td class="border border-gray-300 p-2 no-print bg-gray-50"></td>
+            </tr>
+            <tr>
+              <td colspan="5" class="border border-gray-300 p-2 text-left font-bold">DP PEMBAYARAN</td>
+              <td class="border border-gray-300 p-2 text-right">
+                <div class="flex items-center justify-end gap-1">
+                  <span>Rp</span>
+                  <input id="dpPayment" type="text" value="0" class="w-32 text-right outline-none focus:bg-yellow-50 font-semibold" />
+                </div>
+              </td>
+              <td class="border border-gray-300 p-2 no-print bg-gray-50"></td>
+            </tr>
+            <tr>
+              <td colspan="5" class="border border-gray-300 p-2 text-left font-bold">SISA PEMBAYARAN</td>
+              <td id="remainingPayment" class="border border-gray-300 p-2 text-right font-bold">Rp 0</td>
+              <td class="border border-gray-300 p-2 no-print bg-gray-50"></td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div class="flex gap-2 mt-4 no-print">
+          <button id="addProduct" class="text-white px-4 py-2 rounded flex items-center gap-2" style="background-color: #325C74;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Tambah Produk
+          </button>
+        </div>
+      </div>
+
+      <div class="flex justify-between items-end mt-12">
+        <div>
+          <h3 class="font-bold mb-2">Pesan</h3>
+          <p class="text-sm text-gray-700">No Rek BCA 8115085693</p>
+          <p class="text-sm text-gray-700">A/n Johanes Sinaga</p>
+          <p class="text-sm text-gray-700 mt-2">No rek BRI 0336-01-118498-50-6</p>
+          <p class="text-sm text-gray-700">A/n Johanes Sinaga</p>
+          <p class="text-sm text-gray-700 mt-2">No rek Bonnie 0336-01-118498-50-6</p>
+          <p class="text-sm text-gray-700">A/n Johanes Sinaga</p>
+          <p class="text-sm text-gray-700 mt-2">Kirimkan bukti transfer jika pembayaran sudah dilakukan.</p>
+        </div>
+        <div class="text-center">
+          <p class="text-sm mb-2"style="margin-bottom: -30px;" >Dengan Hormat</p>
+          <img src="tandaTangan.png" alt="Tanda Tangan" class="w-36 h-36 mx-auto object-contain" style="margin-bottom: -25px;"  style="margin-left: 50px;" />
+          <p class="font-bold">Johanes Sinaga</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

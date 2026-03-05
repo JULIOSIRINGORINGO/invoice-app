@@ -1,0 +1,65 @@
+@media print {
+  @page { 
+    size: letter; 
+    margin: 0.5in; 
+  }
+  
+  body { 
+    margin: 0; 
+    padding: 0; 
+  }
+  
+  .no-print { 
+    display: none !important; 
+  }
+  
+  .print-area { 
+    box-shadow: none !important; 
+    margin: 0 !important; 
+    padding: 0 !important; 
+  }
+  
+  input { 
+    border: none !important; 
+    background: transparent !important; 
+    outline: none !important; 
+    -webkit-appearance: none; 
+  }
+  
+  input:focus { 
+    background: transparent !important; 
+  }
+  
+  .bg-teal-700 { 
+    background-color: #325C74 !important; 
+    -webkit-print-color-adjust: exact; 
+    print-color-adjust: exact; 
+  }
+  
+  thead tr { 
+    background-color: #325C74 !important; 
+    -webkit-print-color-adjust: exact; 
+    print-color-adjust: exact; 
+  }
+  .items-end {
+  align-items: flex-end !important;
+  }
+
+  .text-right {
+  text-align: right !important;
+  }
+ .nama{
+  margin-right: -200px;
+ }
+}
+
+.icon-btn { 
+  display: inline-flex; 
+  align-items: center; 
+  justify-content: center; 
+}
+
+table td, table th { 
+  vertical-align: middle; 
+}
+
