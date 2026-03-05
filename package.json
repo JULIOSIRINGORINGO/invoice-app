@@ -1,0 +1,12 @@
+{
+    "name": "invoice-app-root",
+    "version": "1.0.0",
+    "scripts": {
+        "build": "cd client && npm run build",
+        "start": "pm2 start ecosystem.config.js",
+        "stop": "pm2 stop all",
+        "restart": "pm2 restart all",
+        "status": "pm2 status",
+        "logs": "pm2 logs"
+    }
+}
