@@ -241,9 +241,9 @@ const InvoiceForm = () => {
                             <h3 className="font-bold mb-2">Pesan</h3>
                             <p className="text-sm text-gray-700">No Rek BCA 8115085693</p>
                             <p className="text-sm text-gray-700">A/n Johanes Sinaga</p>
-                            <p className="text-sm text-gray-700 mt-2">No rek BRI 0336-01-118498-50-6</p>
+                            <p className="text-sm text-gray-700 mt-2">No rek BRI 033601118498506</p>
                             <p className="text-sm text-gray-700">A/n Johanes Sinaga</p>
-                            <p className="text-sm text-gray-700 mt-2">No rek Bonnie 0336-01-118498-50-6</p>
+                            <p className="text-sm text-gray-700 mt-2">No rek BNI 1694871050</p>
                             <p className="text-sm text-gray-700">A/n Johanes Sinaga</p>
                             <p className="text-sm text-gray-700 mt-2">Kirimkan bukti transfer jika pembayaran sudah dilakukan.</p>
                         </div>
