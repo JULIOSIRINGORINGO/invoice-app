@@ -1,0 +1,21 @@
+CREATE TABLE invoices (
+  id SERIAL PRIMARY KEY,
+  customer TEXT NOT NULL,
+  date TEXT NOT NULL,
+  dp INTEGER DEFAULT 0,
+  discount INTEGER DEFAULT 0,
+  grand_total INTEGER DEFAULT 0,
+  remaining INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE invoice_items (
+  id SERIAL PRIMARY KEY,
+  invoice_id INTEGER NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+  product TEXT,
+  color TEXT,
+  size TEXT,
+  quantity INTEGER DEFAULT 0,
+  price INTEGER DEFAULT 0,
+  amount INTEGER DEFAULT 0
+);

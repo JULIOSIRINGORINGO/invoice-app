@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { formatCurrency, formatDate } from '../utils/format';
 import { Plus, Search, Edit2, Trash2 } from 'lucide-react';
+import { getInvoices, searchInvoices, deleteInvoice } from '../lib/invoiceService';
 
 const InvoiceList = () => {
     const [invoices, setInvoices] = useState([]);
@@ -17,8 +18,7 @@ const InvoiceList = () => {
 
     const fetchInvoices = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/invoices');
-            const data = await response.json();
+            const data = await getInvoices();
             setInvoices(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Error fetching invoices:', error);
@@ -27,13 +27,7 @@ const InvoiceList = () => {
 
     const handleSearch = async () => {
         try {
-            const params = new URLSearchParams();
-            if (search) params.append('name', search);
-            if (dateFrom) params.append('from', dateFrom);
-            if (dateTo) params.append('to', dateTo);
-
-            const response = await fetch(`http://localhost:5000/api/invoices/search?${params.toString()}`);
-            const data = await response.json();
+            const data = await searchInvoices({ name: search, from: dateFrom, to: dateTo });
             setInvoices(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Error searching invoices:', error);
@@ -53,16 +47,11 @@ const InvoiceList = () => {
         if (!invoiceToDelete) return;
 
         try {
-            const response = await fetch(`http://localhost:5000/api/invoices/${invoiceToDelete}`, { method: 'DELETE' });
-
-            if (response.ok) {
-                fetchInvoices();
-            } else {
-                alert('Gagal menghapus invoice dari database');
-            }
+            await deleteInvoice(invoiceToDelete);
+            fetchInvoices();
         } catch (error) {
             console.error('Delete failed:', error);
-            alert('Terjadi kesalahan jaringan saat menghapus invoice');
+            alert('Terjadi kesalahan saat menghapus invoice');
         } finally {
             setDeleteModalOpen(false);
             setInvoiceToDelete(null);

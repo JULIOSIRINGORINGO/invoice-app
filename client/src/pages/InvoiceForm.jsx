@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Save, FileText } from 'lucide-react';
 import InvoiceTable from '../components/InvoiceTable';
 import { formatCurrency, parseCurrency, formatDate } from '../utils/format';
+import { getInvoiceById, createInvoice, updateInvoice } from '../lib/invoiceService';
 
 const InvoiceForm = () => {
     const { id } = useParams();
@@ -30,14 +31,15 @@ const InvoiceForm = () => {
 
     const fetchInvoiceDetail = async () => {
         try {
-            const response = await fetch(`http://localhost:5000/api/invoices/${id}`);
-            const data = await response.json();
+            const data = await getInvoiceById(id);
             setCustomer(data.customer);
             setDate(data.date);
             setDp(data.dp);
             setDiscount(data.discount);
 
-            const grouped = data.items.reduce((acc, item) => {
+            // Supabase returns invoice_items as the related table name
+            const items = data.invoice_items || [];
+            const grouped = items.reduce((acc, item) => {
                 const key = `${item.product}-${item.color}`;
                 if (!acc[key]) {
                     acc[key] = {
@@ -74,6 +76,7 @@ const InvoiceForm = () => {
 
     const handleSave = async (e) => {
         if (e) e.preventDefault();
+
         const invoiceData = {
             customer,
             date,
@@ -81,33 +84,27 @@ const InvoiceForm = () => {
             discount,
             grand_total: grandTotal,
             remaining: remaining,
-            items: products.flatMap(p => p.sizes.map(s => ({
-                product: p.product,
-                color: p.color,
-                size: s.size,
-                quantity: s.quantity,
-                price: s.price,
-                amount: s.amount
-            })))
         };
 
+        const items = products.flatMap(p => p.sizes.map(s => ({
+            product: p.product,
+            color: p.color,
+            size: s.size,
+            quantity: s.quantity,
+            price: s.price,
+            amount: s.amount
+        })));
+
         try {
-            const url = id ? `http://localhost:5000/api/invoices/${id}` : 'http://localhost:5000/api/invoices';
-            const method = id ? 'PUT' : 'POST';
-
-            const response = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(invoiceData)
-            });
-
-            if (response.ok) {
-                navigate('/');
+            if (id) {
+                await updateInvoice(id, invoiceData, items);
             } else {
-                alert('Gagal menyimpan invoice');
+                await createInvoice(invoiceData, items);
             }
+            navigate('/');
         } catch (error) {
             console.error('Error saving invoice:', error);
+            alert('Gagal menyimpan invoice');
         }
     };
 
