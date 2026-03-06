@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Save, FileText } from 'lucide-react';
+import { ChevronLeft, Save, FileText, Lock, Unlock } from 'lucide-react';
 import InvoiceTable from '../components/InvoiceTable';
 import { formatCurrency, parseCurrency, formatDate } from '../utils/format';
 import { getInvoiceById, createInvoice, updateInvoice } from '../lib/invoiceService';
@@ -9,6 +9,7 @@ const InvoiceForm = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const printRef = useRef();
+    const customerInputRef = useRef();
 
     const [customer, setCustomer] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -23,11 +24,34 @@ const InvoiceForm = () => {
     const [dp, setDp] = useState(0);
     const [discount, setDiscount] = useState(0);
 
+    // New states for UX
+    const [isSignatureLocked, setIsSignatureLocked] = useState(false);
+
     useEffect(() => {
         if (id) {
             fetchInvoiceDetail();
         }
-    }, [id]);
+        // Auto-focus on Nama Customer
+        if (customerInputRef.current) {
+            customerInputRef.current.focus();
+        }
+
+        // Global Keyboard Shortcuts
+        const handleKeyDown = (e) => {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                handleSave();
+            } else if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                handlePrint();
+            } else if (e.key === 'Escape') {
+                navigate('/');
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [id, navigate]);
 
     const fetchInvoiceDetail = async () => {
         try {
@@ -116,32 +140,42 @@ const InvoiceForm = () => {
         <div className="min-h-screen print:min-h-0 bg-gray-100 print:bg-transparent p-6 print:p-0">
             <div className="max-w-4xl mx-auto">
                 <div className="mb-4 flex justify-between items-center no-print">
-                    <button
-                        onClick={() => navigate('/')}
-                        className="text-gray-600 flex items-center gap-2 hover:text-gray-900"
-                    >
-                        <ChevronLeft size={20} /> Kembali
-                    </button>
-                    <div className="flex gap-3">
+                    <div className="flex flex-col gap-1">
                         <button
-                            onClick={handlePrint}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 shadow-md transition-colors"
+                            onClick={() => navigate('/')}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 transition-colors shadow-sm"
                         >
-                            <FileText size={20} /> Save as PDF
+                            <ChevronLeft size={20} /> Kembali ke Dashboard
                         </button>
-                        <button
-                            onClick={handleSave}
-                            className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700 shadow-md transition-colors"
-                        >
-                            <Save size={20} /> Simpan
-                        </button>
+                        <span className="text-[10px] text-gray-400 ml-1">Hint: "Esc"</span>
+                    </div>
+
+                    <div className="flex gap-4">
+                        <div className="flex flex-col items-center gap-1">
+                            <button
+                                onClick={handlePrint}
+                                className="bg-blue-600 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 hover:bg-blue-700 shadow-md transition-colors"
+                            >
+                                <FileText size={20} /> Print/PDF
+                            </button>
+                            <span className="text-[10px] text-gray-400">Hint: "Ctrl+P"</span>
+                        </div>
+                        <div className="flex flex-col items-center gap-1">
+                            <button
+                                onClick={handleSave}
+                                className="bg-[#325C74] text-white px-5 py-2.5 rounded-lg flex items-center gap-2 hover:opacity-90 shadow-md transition-colors"
+                            >
+                                <Save size={20} /> Simpan Invoice
+                            </button>
+                            <span className="text-[10px] text-gray-400">Hint: "Ctrl+S"</span>
+                        </div>
                     </div>
                 </div>
 
                 <div ref={printRef} className="bg-white p-8 shadow-lg print-area">
                     {/* Header Section */}
                     <div className="flex justify-between items-start mb-8">
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-4 relative group">
                             <img src="/logo.png" alt="Logo Custom Kekinian" className="w-24 h-24 object-cover rounded-full" />
                         </div>
                         <div className="text-right">
@@ -165,9 +199,10 @@ const InvoiceForm = () => {
                             <div className="flex flex-col flex-grow">
                                 <div className="text-sm text-gray-600">Kepada</div>
                                 <input
+                                    ref={customerInputRef}
                                     type="text"
                                     placeholder="Nama Customer"
-                                    className="text-lg font-semibold outline-none border-none p-0 focus:bg-yellow-50 transition-colors duration-200"
+                                    className="text-lg font-semibold outline-none border-none p-1 focus:input-focus rounded-sm transition-all duration-200"
                                     value={customer}
                                     onChange={(e) => setCustomer(e.target.value)}
                                     onFocus={(e) => e.target.select()}
@@ -177,7 +212,7 @@ const InvoiceForm = () => {
                                 <div className="text-sm text-gray-600">Tanggal</div>
                                 <input
                                     type="date"
-                                    className="text-lg font-semibold outline-none border-none p-0 text-right focus:bg-yellow-50 no-print transition-colors duration-200"
+                                    className="text-lg font-semibold outline-none border-none p-1 text-right focus:input-focus rounded-sm no-print transition-all duration-200"
                                     value={date}
                                     onChange={(e) => setDate(e.target.value)}
                                     onFocus={(e) => e.target.select()}
@@ -197,6 +232,7 @@ const InvoiceForm = () => {
                         setDiscount={setDiscount}
                         grandTotal={grandTotal}
                         remaining={remaining}
+                        onSave={handleSave}
                     />
 
                     {/* Footer / Pesan Section */}
@@ -211,10 +247,24 @@ const InvoiceForm = () => {
                             <p className="text-sm text-gray-700">A/n Johanes Sinaga</p>
                             <p className="text-sm text-gray-700 mt-2">Kirimkan bukti transfer jika pembayaran sudah dilakukan.</p>
                         </div>
-                        <div className="text-center relative">
+                        <div className="text-center relative group">
                             <p className="text-sm mb-2" style={{ marginBottom: '-30px' }}>Dengan Hormat</p>
-                            <img src="/tandaTangan.png" alt="Tanda Tangan" className="w-36 h-36 mx-auto object-contain" style={{ marginBottom: '-25px', marginLeft: '50px' }} />
-                            <p className="font-bold">Johanes Sinaga</p>
+                            <div className="mt-4">
+                                <img
+                                    src="/tandaTangan.png"
+                                    alt="Tanda Tangan"
+                                    className={`w-36 h-36 mx-auto object-contain transition-all duration-300 ${isSignatureLocked ? 'locked-hidden' : ''}`}
+                                    style={{ marginBottom: '-25px', marginLeft: '50px' }}
+                                />
+                                <p className="font-bold">Johanes Sinaga</p>
+                            </div>
+                            <button
+                                onClick={() => setIsSignatureLocked(!isSignatureLocked)}
+                                className="lock-toggle absolute top-0 -right-4 p-1.5 text-gray-500 hover:text-gray-800 transition-colors focus:outline-none no-print"
+                                title={isSignatureLocked ? "Unlock Signature" : "Lock Signature (Hide on Print)"}
+                            >
+                                {isSignatureLocked ? <Lock size={16} /> : <Unlock size={16} />}
+                            </button>
                         </div>
                     </div>
                 </div>

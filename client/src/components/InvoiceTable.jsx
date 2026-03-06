@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Trash2, Lock, Unlock } from 'lucide-react';
 import { formatCurrency, parseCurrency } from '../utils/format';
 
-const InvoiceTable = ({ products, setProducts, dp, setDp, discount, setDiscount, grandTotal, remaining }) => {
+const InvoiceTable = ({ products, setProducts, dp, setDp, discount, setDiscount, grandTotal, remaining, onSave }) => {
 
     const [isDiscountLocked, setIsDiscountLocked] = useState(true);
     const [isDpLocked, setIsDpLocked] = useState(true);
+
+    // Refs for auto-focus
+    const lastFocusedField = useRef(null);
 
     useEffect(() => {
         if (discount > 0) setIsDiscountLocked(false);
@@ -48,7 +51,6 @@ const InvoiceTable = ({ products, setProducts, dp, setDp, discount, setDiscount,
             } else {
                 let numericValue = parseInt(value.replace(/\D/g, ''), 10);
                 if (!isNaN(numericValue)) {
-                    // Minimum value is 1, not 0
                     size[field] = numericValue === 0 ? 1 : numericValue;
                 }
             }
@@ -72,16 +74,19 @@ const InvoiceTable = ({ products, setProducts, dp, setDp, discount, setDiscount,
     };
 
     const addProduct = () => {
+        const newId = Date.now();
         setProducts([...products, {
-            id: Date.now(),
+            id: newId,
             product: '',
             color: '',
-            sizes: [{ id: Date.now() + 1, size: '', quantity: 1, price: 0, amount: 0 }]
+            sizes: [{ id: newId + 1, size: '', quantity: 1, price: 0, amount: 0 }]
         }]);
+        lastFocusedField.current = { type: 'product', pIndex: products.length };
     };
 
     const addSize = (prodIndex) => {
         const newProducts = [...products];
+        const sIndex = newProducts[prodIndex].sizes.length;
         newProducts[prodIndex].sizes.push({
             id: Date.now(),
             size: '',
@@ -90,6 +95,7 @@ const InvoiceTable = ({ products, setProducts, dp, setDp, discount, setDiscount,
             amount: 0
         });
         setProducts(newProducts);
+        lastFocusedField.current = { type: 'size', pIndex: prodIndex, sIndex };
     };
 
     const removeSize = (prodIndex, sizeIndex) => {
@@ -104,57 +110,149 @@ const InvoiceTable = ({ products, setProducts, dp, setDp, discount, setDiscount,
 
     const handleFocus = (e) => e.target.select();
 
+    // Auto-focus logic for new items
+    useEffect(() => {
+        if (lastFocusedField.current) {
+            const { type, pIndex, sIndex } = lastFocusedField.current;
+            let selector = '';
+            if (type === 'product') {
+                selector = `input[data-prod="${pIndex}"]`;
+            } else if (type === 'size') {
+                selector = `select[data-ps="${pIndex}-${sIndex}"]`;
+            }
+
+            if (selector) {
+                const el = document.querySelector(selector);
+                if (el) el.focus();
+            }
+            lastFocusedField.current = null;
+        }
+    }, [products]);
+
+    // Keyboard Navigation Logic
+    const handleKeyDown = (e, pIndex, sIndex, field) => {
+        const moveFocus = (selector) => {
+            const el = document.querySelector(selector);
+            if (el) {
+                e.preventDefault();
+                el.focus();
+                if (el.tagName === 'INPUT') el.select();
+            }
+        };
+
+        const fields = ['product', 'color', 'size', 'quantity', 'price'];
+        const colIndex = fields.indexOf(field);
+
+        if (e.key === 'ArrowRight') {
+            if (colIndex < fields.length - 1) {
+                moveFocus(`[data-field="${fields[colIndex + 1]}"][data-ps="${pIndex}-${sIndex}"]`);
+            }
+        } else if (e.key === 'ArrowLeft') {
+            if (colIndex > 0) {
+                moveFocus(`[data-field="${fields[colIndex - 1]}"][data-ps="${pIndex}-${sIndex}"]`);
+            }
+        } else if (e.key === 'ArrowDown') {
+            const nextSIndex = sIndex + 1;
+            if (nextSIndex < products[pIndex].sizes.length) {
+                moveFocus(`[data-field="${field}"][data-ps="${pIndex}-${nextSIndex}"]`);
+            } else if (pIndex + 1 < products.length) {
+                moveFocus(`[data-field="${field}"][data-ps="${pIndex + 1}-0"]`);
+            } else if (field === 'price') {
+                moveFocus('[data-field="discount"]');
+            }
+        } else if (e.key === 'ArrowUp') {
+            const prevSIndex = sIndex - 1;
+            if (prevSIndex >= 0) {
+                moveFocus(`[data-field="${field}"][data-ps="${pIndex}-${prevSIndex}"]`);
+            } else if (pIndex > 0) {
+                const lastSIndexPrev = products[pIndex - 1].sizes.length - 1;
+                moveFocus(`[data-field="${field}"][data-ps="${pIndex - 1}-${lastSIndexPrev}"]`);
+            }
+        } else if (e.key === 'Enter') {
+            // Sequential navigation
+            if (field === 'product') moveFocus(`[data-field="color"][data-ps="${pIndex}-${sIndex}"]`);
+            else if (field === 'color') moveFocus(`[data-field="size"][data-ps="${pIndex}-${sIndex}"]`);
+            else if (field === 'size') moveFocus(`[data-field="quantity"][data-ps="${pIndex}-${sIndex}"]`);
+            else if (field === 'quantity') moveFocus(`[data-field="price"][data-ps="${pIndex}-${sIndex}"]`);
+            else if (field === 'price') {
+                const nextSIndex = sIndex + 1;
+                if (nextSIndex < products[pIndex].sizes.length) {
+                    moveFocus(`[data-field="size"][data-ps="${pIndex}-${nextSIndex}"]`);
+                } else if (pIndex + 1 < products.length) {
+                    moveFocus(`[data-field="product"][data-ps="${pIndex + 1}-0"]`);
+                } else if (!isDiscountLocked) {
+                    moveFocus(`[data-field="discount"]`);
+                } else if (!isDpLocked) {
+                    moveFocus(`[data-field="dp"]`);
+                } else {
+                    onSave();
+                }
+            }
+        }
+    };
+
     return (
         <div className="mb-6">
-            <table className="w-full border-collapse border border-gray-300">
+            <table className="w-full border-collapse border border-gray-300 shadow-sm rounded-lg overflow-hidden">
                 <thead>
-                    <tr className="bg-brand text-white">
-                        <th className="border border-gray-300 p-2 text-left w-1/4">PRODUK</th>
-                        <th className="border border-gray-300 p-2 w-1/6">COLOR</th>
-                        <th className="border border-gray-300 p-2 w-16 text-center">SIZE</th>
-                        <th className="border border-gray-300 p-2 w-16 text-center">QTY</th>
-                        <th className="border border-gray-300 p-2 w-1/5 text-center">HARGA</th>
-                        <th className="border border-gray-300 p-2 w-1/5 text-center">JUMLAH</th>
-                        <th className="border border-gray-300 p-2 no-print w-20 text-center">AKSI</th>
+                    <tr className="bg-[#325C74] text-white">
+                        <th className="border border-gray-300 p-3 text-left w-1/4">PRODUK</th>
+                        <th className="border border-gray-300 p-3 w-1/6">COLOR</th>
+                        <th className="border border-gray-300 p-3 w-16 text-center">SIZE</th>
+                        <th className="border border-gray-300 p-3 w-16 text-center">QTY</th>
+                        <th className="border border-gray-300 p-3 w-1/5 text-center">HARGA</th>
+                        <th className="border border-gray-300 p-3 w-1/5 text-center">JUMLAH</th>
+                        <th className="border border-gray-300 p-3 no-print w-20 text-center">AKSI</th>
                     </tr>
                 </thead>
                 <tbody>
                     {products.map((product, pIndex) => (
                         product.sizes.map((size, sIndex) => (
-                            <tr key={`${product.id}-${size.id}`}>
+                            <tr key={`${product.id}-${size.id}`} className="hover:bg-gray-50 transition-colors">
                                 {sIndex === 0 && (
                                     <>
                                         <td className="border border-gray-300 p-2 align-top" rowSpan={product.sizes.length}>
                                             <input
                                                 type="text"
+                                                data-field="product"
+                                                data-prod={pIndex}
+                                                data-ps={`${pIndex}-${sIndex}`}
                                                 placeholder="Nama Produk"
-                                                className="w-full outline-none font-semibold focus:bg-yellow-50 p-1 transition-colors duration-200"
+                                                className="w-full outline-none font-bold p-1 transition-all duration-200 focus:bg-yellow-50 focus:ring-2 focus:ring-blue-300 rounded-sm"
                                                 value={product.product}
                                                 onChange={(e) => updateProduct(pIndex, 'product', e.target.value)}
                                                 onFocus={handleFocus}
+                                                onKeyDown={(e) => handleKeyDown(e, pIndex, sIndex, 'product')}
                                             />
                                         </td>
                                         <td className="border border-gray-300 p-2 text-center align-top" rowSpan={product.sizes.length}>
                                             <input
                                                 type="text"
+                                                data-field="color"
+                                                data-ps={`${pIndex}-${sIndex}`}
                                                 placeholder="Warna"
-                                                className="w-full text-center outline-none font-semibold focus:bg-yellow-50 p-1 transition-colors duration-200"
+                                                className="w-full text-center outline-none font-semibold p-1 transition-all duration-200 focus:bg-yellow-50 focus:ring-2 focus:ring-blue-300 rounded-sm"
                                                 value={product.color}
                                                 onChange={(e) => updateProduct(pIndex, 'color', e.target.value)}
                                                 onFocus={handleFocus}
+                                                onKeyDown={(e) => handleKeyDown(e, pIndex, sIndex, 'color')}
                                             />
                                         </td>
                                     </>
                                 )}
                                 <td className="border border-gray-300 p-2 text-center">
                                     <select
-                                        className="w-full text-center appearance-none outline-none focus:bg-yellow-50 p-1 transition-colors duration-200 bg-transparent"
+                                        data-field="size"
+                                        data-ps={`${pIndex}-${sIndex}`}
+                                        className="w-full text-center appearance-none outline-none p-1 transition-all duration-200 bg-transparent focus:bg-yellow-50 focus:ring-2 focus:ring-blue-300 rounded-sm"
                                         value={size.size}
                                         onChange={(e) => updateSize(pIndex, sIndex, 'size', e.target.value)}
                                         onFocus={handleFocus}
                                         onKeyDown={(e) => {
                                             if (e.key === 'Backspace' || e.key === 'Delete') {
                                                 updateSize(pIndex, sIndex, 'size', '');
+                                            } else {
+                                                handleKeyDown(e, pIndex, sIndex, 'size');
                                             }
                                         }}
                                     >
@@ -173,29 +271,33 @@ const InvoiceTable = ({ products, setProducts, dp, setDp, discount, setDiscount,
                                 <td className="border border-gray-300 p-2 text-center">
                                     <input
                                         type="text"
+                                        data-field="quantity"
+                                        data-ps={`${pIndex}-${sIndex}`}
                                         inputMode="numeric"
                                         pattern="[0-9]*"
                                         placeholder="0"
-                                        className="w-full text-center outline-none focus:bg-yellow-50 p-1 transition-colors duration-200"
+                                        className="w-full text-center outline-none p-1 transition-all duration-200 focus:bg-yellow-50 focus:ring-2 focus:ring-blue-300 rounded-sm"
                                         value={size.quantity}
                                         onChange={(e) => updateSize(pIndex, sIndex, 'quantity', e.target.value)}
                                         onFocus={handleFocus}
                                         onBlur={() => handleQuantityBlur(pIndex, sIndex)}
+                                        onKeyDown={(e) => handleKeyDown(e, pIndex, sIndex, 'quantity')}
                                     />
                                 </td>
                                 <td className="border border-gray-300 p-2 text-right">
-                                    <div className="flex items-center justify-end gap-1">
-                                        <input
-                                            type="text"
-                                            placeholder="Harga"
-                                            className="w-full text-right outline-none focus:bg-yellow-50 p-1 transition-colors duration-200"
-                                            value={formatCurrency(size.price)}
-                                            onChange={(e) => updateSize(pIndex, sIndex, 'price', e.target.value)}
-                                            onFocus={handleFocus}
-                                        />
-                                    </div>
+                                    <input
+                                        type="text"
+                                        data-field="price"
+                                        data-ps={`${pIndex}-${sIndex}`}
+                                        placeholder="Harga"
+                                        className="w-full text-right outline-none p-1 transition-all duration-200 focus:bg-yellow-50 focus:ring-2 focus:ring-blue-300 rounded-sm font-medium focus:font-bold"
+                                        value={formatCurrency(size.price)}
+                                        onChange={(e) => updateSize(pIndex, sIndex, 'price', e.target.value)}
+                                        onFocus={handleFocus}
+                                        onKeyDown={(e) => handleKeyDown(e, pIndex, sIndex, 'price')}
+                                    />
                                 </td>
-                                <td className="border border-gray-300 p-2 text-right font-medium">
+                                <td className="border border-gray-300 p-2 text-right font-bold text-[#325C74]">
                                     {formatCurrency(size.amount)}
                                 </td>
                                 <td className="border border-gray-300 p-2 text-center no-print">
@@ -221,16 +323,16 @@ const InvoiceTable = ({ products, setProducts, dp, setDp, discount, setDiscount,
                     ))}
                 </tbody>
                 <tfoot>
-                    <tr>
-                        <td colSpan="5" className="border border-gray-300 p-2 text-left font-bold">TOTAL</td>
-                        <td className="border border-gray-300 p-2 text-right font-bold">
+                    <tr className="bg-gray-50">
+                        <td colSpan="5" className="border border-gray-300 p-3 text-left font-bold">TOTAL</td>
+                        <td className="border border-gray-300 p-3 text-right font-bold text-xl">
                             {formatCurrency(grandTotal)}
                         </td>
-                        <td className="border border-gray-300 p-2 no-print bg-gray-50"></td>
+                        <td className="border border-gray-300 p-3 no-print"></td>
                     </tr>
                     <tr className={!isDiscountLocked && discount > 0 ? "" : "print:hidden"}>
-                        <td colSpan="5" className="border border-gray-300 p-2 text-left font-bold">DISKON</td>
-                        <td className="border border-gray-300 p-2 text-right font-bold">
+                        <td colSpan="5" className="border border-gray-300 p-3 text-left font-bold">DISKON</td>
+                        <td className="border border-gray-300 p-3 text-right font-bold">
                             <div className="flex items-center justify-end gap-2">
                                 <button
                                     onClick={toggleDiscountLock}
@@ -241,20 +343,35 @@ const InvoiceTable = ({ products, setProducts, dp, setDp, discount, setDiscount,
                                 </button>
                                 <input
                                     type="text"
+                                    data-field="discount"
                                     placeholder="Diskon"
-                                    className={`w-full text-right outline-none font-bold transition-colors duration-200 p-1 rounded-sm ${isDiscountLocked ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'focus:bg-yellow-50 bg-white cursor-text'}`}
+                                    className={`w-full text-right outline-none font-bold transition-all duration-200 p-1 rounded-sm ${isDiscountLocked ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'focus:bg-yellow-50 focus:ring-2 focus:ring-blue-300 bg-white cursor-text'}`}
                                     value={formatCurrency(discount)}
                                     onChange={(e) => setDiscount(parseCurrency(e.target.value))}
                                     onFocus={handleFocus}
                                     disabled={isDiscountLocked}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            if (!isDpLocked) {
+                                                const el = document.querySelector('[data-field="dp"]');
+                                                if (el) el.focus();
+                                            } else onSave();
+                                        }
+                                        if (e.key === 'ArrowDown' && !isDpLocked) {
+                                            e.preventDefault();
+                                            const el = document.querySelector('[data-field="dp"]');
+                                            if (el) el.focus();
+                                        }
+                                    }}
                                 />
                             </div>
                         </td>
-                        <td className="border border-gray-300 p-2 no-print bg-gray-50"></td>
+                        <td className="border border-gray-300 p-3 no-print bg-gray-50"></td>
                     </tr>
                     <tr className={!isDpLocked && dp > 0 ? "" : "print:hidden"}>
-                        <td colSpan="5" className="border border-gray-300 p-2 text-left font-bold">DP PEMBAYARAN</td>
-                        <td className="border border-gray-300 p-2 text-right font-bold">
+                        <td colSpan="5" className="border border-gray-300 p-3 text-left font-bold">DP PEMBAYARAN</td>
+                        <td className="border border-gray-300 p-3 text-right font-bold">
                             <div className="flex items-center justify-end gap-2">
                                 <button
                                     onClick={toggleDpLock}
@@ -265,33 +382,49 @@ const InvoiceTable = ({ products, setProducts, dp, setDp, discount, setDiscount,
                                 </button>
                                 <input
                                     type="text"
+                                    data-field="dp"
                                     placeholder="DP"
-                                    className={`w-full text-right outline-none transition-colors duration-200 p-1 rounded-sm ${isDpLocked ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'focus:bg-yellow-50 bg-white cursor-text'}`}
+                                    className={`w-full text-right outline-none font-bold transition-all duration-200 p-1 rounded-sm ${isDpLocked ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'focus:bg-yellow-50 focus:ring-2 focus:ring-blue-300 bg-white cursor-text'}`}
                                     value={formatCurrency(dp)}
                                     onChange={(e) => setDp(parseCurrency(e.target.value))}
                                     onFocus={handleFocus}
                                     disabled={isDpLocked}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            onSave();
+                                        }
+                                        if (e.key === 'ArrowUp') {
+                                            e.preventDefault();
+                                            const el = document.querySelector('[data-field="discount"]');
+                                            if (el) el.focus();
+                                        }
+                                    }}
                                 />
                             </div>
                         </td>
-                        <td className="border border-gray-300 p-2 no-print bg-gray-50"></td>
+                        <td className="border border-gray-300 p-3 no-print bg-gray-50"></td>
                     </tr>
                     <tr>
-                        <td colSpan="5" className="border border-gray-300 p-2 text-left font-bold">SISA PEMBAYARAN</td>
-                        <td className="border border-gray-300 p-2 text-right font-bold text-brand">
+                        <td colSpan="5" className="border border-gray-300 p-3 text-left font-bold">SISA PEMBAYARAN</td>
+                        <td className="border border-gray-300 p-3 text-right font-bold text-xl whitespace-nowrap">
                             {formatCurrency(remaining)}
                         </td>
-                        <td className="border border-gray-300 p-2 no-print bg-gray-50"></td>
+                        <td className="border border-gray-300 p-3 no-print bg-gray-50"></td>
                     </tr>
                 </tfoot>
             </table>
-            <div className="mt-4 no-print">
+            <div className="mt-4 no-print flex justify-between items-center text-xs text-gray-400">
                 <button
                     onClick={addProduct}
-                    className="bg-brand text-white px-4 py-2 rounded flex items-center gap-2 hover:opacity-90 transition-opacity"
+                    className="bg-[#325C74] text-white px-6 py-2.5 rounded-lg flex items-center gap-2 hover:opacity-90 transition-all shadow-md transform active:scale-95"
                 >
-                    <Plus size={18} /> Tambah Produk
+                    <Plus size={18} /> Tambah Produk Baru
                 </button>
+                <div className="flex gap-4 italic font-medium">
+                    <span>Arrows: Navigasi Grid</span>
+                    <span>Enter: Selanjutnya / Save</span>
+                </div>
             </div>
         </div>
     );

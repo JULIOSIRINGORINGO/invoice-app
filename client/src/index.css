@@ -90,3 +90,37 @@ input[type=number]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+
+/* UX Improvements */
+.input-focus {
+  background-color: #fefce8;
+  /* bg-yellow-50 */
+  box-shadow: 0 0 0 2px #93c5fd;
+  /* ring-2 ring-blue-300 */
+}
+
+.btn-brand {
+  background-color: #325C74;
+}
+
+.btn-brand:hover {
+  opacity: 0.9;
+}
+
+.locked-display-none {
+  display: none !important;
+}
+
+.locked-hidden {
+  visibility: hidden !important;
+}
+
+.lock-toggle {
+  @apply no-print;
+}
+
+@media print {
+  .lock-toggle {
+    display: none !important;
+  }
+}
