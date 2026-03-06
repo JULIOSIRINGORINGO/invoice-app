@@ -1,0 +1,21 @@
+{
+    "name": "Invoice Custom Kekinian",
+    "short_name": "Invoice CK",
+    "description": "Invoice Generator Custom Kekinian",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#325C74",
+    "icons": [
+        {
+            "src": "/logo.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/logo.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
